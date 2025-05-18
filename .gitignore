@@ -1,0 +1,49 @@
+# Geçici sistem dosyaları
+.DS_Store
+Thumbs.db
+
+# IDE/editor dosyaları
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Log dosyaları
+*.log
+
+# Python için
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+venv/
+ENV/
+
+# Node.js için
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Arduino / PlatformIO
+*.elf
+*.bin
+*.hex
+.pio/
+*.d
+*.o
+*.a
+
+# macOS swap dosyaları
+*.swp
+
+# Kişisel ayarlar ve tokenlar
+.env
+*.secret
+config.json
+*.pem
+
+# Build klasörleri
+dist/
+build/
+output/
