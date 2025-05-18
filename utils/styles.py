@@ -1,0 +1,5 @@
+# utils/styles.py
+
+BG_COLOR = "#FDF6E3"
+HIGHLIGHT = "#F25C54"
+TASK_DONE_COLOR = "#9CA3AF"
