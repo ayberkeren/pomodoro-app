@@ -1,12 +1,12 @@
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QLabel, QPushButton,
-    QHBoxLayout, QCheckBox, QInputDialog, QScrollArea, QFrame, QSizePolicy
+    QHBoxLayout, QCheckBox, QScrollArea, QFrame, QSizePolicy,
+    QDialog, QLineEdit
 )
 from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QFont, QColor, QPainter, QBrush
 from PySide6.QtMultimedia import QSoundEffect
 import sys
-
 
 class OvalButton(QPushButton):
     def paintEvent(self, event):
@@ -19,6 +19,49 @@ class OvalButton(QPushButton):
         painter.setFont(QFont("Segoe UI", 15, QFont.Bold))
         painter.drawText(self.rect(), Qt.AlignCenter, self.text())
 
+class CustomPopup(QWidget):
+    def __init__(self, title, message, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setStyleSheet("background: transparent;")
+        self.setFixedSize(320, 220)
+
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setAlignment(Qt.AlignCenter)
+
+        card = QFrame()
+        card.setStyleSheet("""
+            QFrame {
+                background-color: #fffbee;
+                border: 2px solid #f5ce95;
+                border-radius: 20px;
+            }
+        """)
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(24, 24, 24, 24)
+        card_layout.setSpacing(16)
+
+        title_label = QLabel(title)
+        title_label.setFont(QFont("Segoe UI", 18, QFont.Bold))
+        title_label.setStyleSheet("color: #eb5539; background: none; border: none;")
+        title_label.setAlignment(Qt.AlignCenter)
+        card_layout.addWidget(title_label)
+
+        message_label = QLabel(message)
+        message_label.setFont(QFont("Segoe UI", 14))
+        message_label.setStyleSheet("color: #014f68; background: none; border: none;")
+        message_label.setWordWrap(True)
+        message_label.setAlignment(Qt.AlignCenter)
+        card_layout.addWidget(message_label)
+
+        ok_button = OvalButton("Tamam")
+        ok_button.setFixedSize(150, 42)
+        ok_button.clicked.connect(self.close)
+        card_layout.addWidget(ok_button, alignment=Qt.AlignCenter)
+
+        outer_layout.addWidget(card)
 
 class PomodoroApp(QWidget):
     def __init__(self):
@@ -28,8 +71,6 @@ class PomodoroApp(QWidget):
         self.setStyleSheet("QWidget { background-color: #fff1d5; border: none; }")
         self.tasks = []
         self.active_tab = "Pomodoro"
-
-        # Test süreleri (gerçek kullanımda dakika*60 yapılır)
         self.pomodoro_duration = 25
         self.short_break = 5
         self.long_break = 10
@@ -54,13 +95,7 @@ class PomodoroApp(QWidget):
 
         card = QFrame()
         card.setObjectName("card")
-        card.setStyleSheet("""
-            QFrame#card {
-                background-color: #fffbee;
-                border: 2px solid #f5ce95;
-                border-radius: 20px;
-            }
-        """)
+        card.setStyleSheet("QFrame#card { background-color: #fffbee; border: 2px solid #f5ce95; border-radius: 20px; }")
         card_layout = QVBoxLayout(card)
         card_layout.setContentsMargins(20, 20, 20, 30)
         card_layout.setSpacing(14)
@@ -92,7 +127,6 @@ class PomodoroApp(QWidget):
         self.time_label.setFont(QFont("Segoe UI", 50, QFont.Black))
         self.time_label.setStyleSheet("color: #014f68; background-color: #fffbee;")
         self.time_label.setAlignment(Qt.AlignCenter)
-        self.time_label.setContentsMargins(0, 10, 0, 0)
         card_layout.addWidget(self.time_label)
 
         self.start_button = OvalButton("Başlat")
@@ -108,12 +142,7 @@ class PomodoroApp(QWidget):
         divider1 = QFrame()
         divider1.setFrameShape(QFrame.HLine)
         divider1.setFixedHeight(1)
-        divider1.setStyleSheet("""
-            background-color: #efece3;
-            border: none;
-            margin-top: 6px;
-            margin-bottom: 6px;
-        """)
+        divider1.setStyleSheet("background-color: #efece3; border: none; margin-top: 6px; margin-bottom: 6px;")
         card_layout.addWidget(divider1)
 
         todo_title = QLabel("Yapılacaklar")
@@ -123,24 +152,7 @@ class PomodoroApp(QWidget):
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("""
-            QScrollArea {
-                background-color: transparent;
-                border: none;
-            }
-            QScrollBar:vertical {
-                background: transparent;
-                width: 6px;
-            }
-            QScrollBar::handle:vertical {
-                background: #2ec4b6;
-                border-radius: 3px;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                height: 0;
-            }
-        """)
-
+        scroll.setStyleSheet("QScrollArea { background-color: transparent; border: none; }")
         self.task_container = QWidget()
         self.task_container.setStyleSheet("background-color: #fffbee; border: none;")
         self.task_layout = QVBoxLayout(self.task_container)
@@ -157,13 +169,7 @@ class PomodoroApp(QWidget):
 
         add_button = QPushButton("Ekle")
         add_button.setFont(QFont("Segoe UI", 15, QFont.Bold))
-        add_button.setStyleSheet("""
-            QPushButton {
-                color: #014f68;
-                background-color: #fffbee;
-                border: none;
-            }
-        """)
+        add_button.setStyleSheet("QPushButton { color: #014f68; background-color: #fffbee; border: none; }")
         add_button.clicked.connect(self.add_task)
         ekle_row.addWidget(add_button)
         ekle_row.addStretch()
@@ -176,12 +182,7 @@ class PomodoroApp(QWidget):
         bottom_divider = QFrame()
         bottom_divider.setFrameShape(QFrame.HLine)
         bottom_divider.setFixedHeight(1)
-        bottom_divider.setStyleSheet("""
-            background-color: #efece3;
-            border: none;
-            margin-top: 20px;
-            margin-bottom: 10px;
-        """)
+        bottom_divider.setStyleSheet("background-color: #efece3; border: none; margin-top: 20px;")
         card_layout.addWidget(bottom_divider)
 
         main_layout.addWidget(card)
@@ -222,14 +223,12 @@ class PomodoroApp(QWidget):
         }[self.mode]
 
         self.time_label.setText(self.format_time(self.current_time))
-
         self.active_tab = {
             "work": "Pomodoro",
             "short_break": "Kısa Mola",
             "long_break": "Uzun Mola"
         }[self.mode]
         self.update_tab_styles()
-
         self.show_popup()
 
     def show_popup(self):
@@ -238,38 +237,37 @@ class PomodoroApp(QWidget):
             "Kısa Mola": "Kısa mola zamanı!",
             "Uzun Mola": "Uzun mola zamanı!"
         }
-
         popup = CustomPopup(self.active_tab, messages[self.active_tab], self)
         popup.move(self.geometry().center() - popup.rect().center())
         popup.show()
 
     def add_task(self):
-        text, ok = QInputDialog.getText(self, "Yeni Görev", "Görev:")
-        if not ok or not text.strip():
-            return
-
-        checkbox = QCheckBox(text)
-        checkbox.setFont(QFont("Segoe UI", 15))
-        checkbox.setStyleSheet("""
-            QCheckBox {
-                color: #014f68;
-                spacing: 20px;
-                background-color: #fffbee;
-            }
-            QCheckBox::indicator {
-                width: 24px;
-                height: 24px;
-                border: 2px solid #2ec4b6;
-                border-radius: 4px;
-                background: #fffbee;
-            }
-            QCheckBox::indicator:checked {
-                background-color: #2ec4b6;
-            }
-        """)
-        checkbox.stateChanged.connect(lambda state, txt=text, cb=checkbox: self.handle_check(txt, cb))
-        self.task_layout.insertWidget(self.task_layout.count() - 1, checkbox)
-        self.tasks.append(checkbox)
+        popup = CustomTaskPopup(self)
+        popup.exec()
+        if popup.result and popup.task_text.strip():
+            text = popup.task_text.strip()
+            checkbox = QCheckBox(text)
+            checkbox.setFont(QFont("Segoe UI", 15))
+            checkbox.setStyleSheet("""
+                QCheckBox {
+                    color: #014f68;
+                    spacing: 20px;
+                    background-color: #fffbee;
+                }
+                QCheckBox::indicator {
+                    width: 24px;
+                    height: 24px;
+                    border: 2px solid #2ec4b6;
+                    border-radius: 4px;
+                    background: #fffbee;
+                }
+                QCheckBox::indicator:checked {
+                    background-color: #2ec4b6;
+                }
+            """)
+            checkbox.stateChanged.connect(lambda state, txt=text, cb=checkbox: self.handle_check(txt, cb))
+            self.task_layout.insertWidget(self.task_layout.count() - 1, checkbox)
+            self.tasks.append(checkbox)
 
     def handle_check(self, text, checkbox):
         if checkbox.isChecked():
@@ -290,13 +288,16 @@ class PomodoroApp(QWidget):
                 }}
             """)
 
-
-class CustomPopup(QWidget):
-    def __init__(self, title, message, parent=None):
+class CustomTaskPopup(QDialog):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
-        self.setStyleSheet("background-color: #fff1d5; border: 2px solid #eb5539; border-radius: 8px;")
-        self.setFixedSize(320, 220)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setStyleSheet("background: transparent;")
+        self.setFixedSize(350, 240)  # Daha ferah
+
+        self.result = False
+        self.task_text = ""
 
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
@@ -311,29 +312,51 @@ class CustomPopup(QWidget):
             }
         """)
         card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(20, 20, 20, 20)
+        card_layout.setContentsMargins(24, 24, 24, 24)
         card_layout.setSpacing(16)
 
-        title_label = QLabel(title)
+        title_label = QLabel("Yeni Görev")
         title_label.setFont(QFont("Segoe UI", 18, QFont.Bold))
         title_label.setStyleSheet("color: #eb5539; background: none; border: none;")
         title_label.setAlignment(Qt.AlignCenter)
         card_layout.addWidget(title_label)
 
-        message_label = QLabel(message)
-        message_label.setFont(QFont("Segoe UI", 14))
-        message_label.setStyleSheet("color: #014f68; background: none; border: none;")
-        message_label.setWordWrap(True)
-        message_label.setAlignment(Qt.AlignCenter)
-        card_layout.addWidget(message_label)
+        self.input = QLineEdit()
+        self.input.setFont(QFont("Segoe UI", 14))
+        self.input.setPlaceholderText("Görev girin...")
+        self.input.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #f5ce95;
+                border-radius: 8px;
+                padding: 6px 10px;
+                background-color: #fff;
+                color: #014f68;
+            }
+        """)
+        card_layout.addWidget(self.input)
 
-        ok_button = OvalButton("Tamam")
-        ok_button.setFixedSize(150, 42)
-        ok_button.clicked.connect(self.close)
-        card_layout.addWidget(ok_button, alignment=Qt.AlignCenter)
+        button_row = QHBoxLayout()
+        cancel_btn = OvalButton("İptal")
+        cancel_btn.setFixedSize(100, 40)
+        cancel_btn.clicked.connect(self.reject)
+        button_row.addWidget(cancel_btn)
 
+        add_btn = OvalButton("Ekle")
+        add_btn.setFixedSize(100, 40)
+        add_btn.clicked.connect(self.accept)
+        button_row.addWidget(add_btn)
+
+        card_layout.addLayout(button_row)
         outer_layout.addWidget(card)
 
+    def accept(self):
+        self.result = True
+        self.task_text = self.input.text()
+        super().accept()
+
+    def reject(self):
+        self.result = False
+        super().reject()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
