@@ -2,9 +2,11 @@ from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QLabel, QPushButton,
     QHBoxLayout, QCheckBox, QInputDialog, QScrollArea, QFrame, QSizePolicy
 )
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QFont, QColor, QPainter, QBrush
+from PySide6.QtMultimedia import QSoundEffect
 import sys
+
 
 class OvalButton(QPushButton):
     def paintEvent(self, event):
@@ -17,6 +19,7 @@ class OvalButton(QPushButton):
         painter.setFont(QFont("Segoe UI", 15, QFont.Bold))
         painter.drawText(self.rect(), Qt.AlignCenter, self.text())
 
+
 class PomodoroApp(QWidget):
     def __init__(self):
         super().__init__()
@@ -26,13 +29,18 @@ class PomodoroApp(QWidget):
         self.tasks = []
         self.active_tab = "Pomodoro"
 
-        self.pomodoro_duration = 25 * 60
-        self.short_break = 5 * 60
-        self.long_break = 30 * 60
+        # Test süreleri (gerçek kullanımda dakika*60 yapılır)
+        self.pomodoro_duration = 25
+        self.short_break = 5
+        self.long_break = 10
         self.current_time = self.pomodoro_duration
         self.timer_running = False
         self.mode = "work"
         self.pomodoro_count = 0
+
+        self.sound = QSoundEffect()
+        self.sound.setSource(QUrl.fromLocalFile("assets/sounds/ding.wav"))
+        self.sound.setVolume(0.5)
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_timer)
@@ -54,10 +62,9 @@ class PomodoroApp(QWidget):
             }
         """)
         card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(20, 20, 20, 20)
+        card_layout.setContentsMargins(20, 20, 20, 30)
         card_layout.setSpacing(14)
 
-        # Sekmeler
         self.tabs = {}
         tab_widget = QWidget()
         tab_widget.setStyleSheet("background-color: #fffbee;")
@@ -76,13 +83,11 @@ class PomodoroApp(QWidget):
         self.update_tab_styles()
         card_layout.addWidget(tab_widget)
 
-        # Sekmelerin altındaki ince çizgi (hepsine)
         underline_all = QFrame()
         underline_all.setFixedHeight(1)
         underline_all.setStyleSheet("background-color: #efece3; border: none;")
         card_layout.addWidget(underline_all)
 
-        # Zaman etiketi
         self.time_label = QLabel(self.format_time(self.current_time))
         self.time_label.setFont(QFont("Segoe UI", 50, QFont.Black))
         self.time_label.setStyleSheet("color: #014f68; background-color: #fffbee;")
@@ -90,13 +95,11 @@ class PomodoroApp(QWidget):
         self.time_label.setContentsMargins(0, 10, 0, 0)
         card_layout.addWidget(self.time_label)
 
-        # Başlat butonu
         self.start_button = OvalButton("Başlat")
         self.start_button.setFixedSize(230, 54)
         self.start_button.clicked.connect(self.toggle_timer)
         card_layout.addWidget(self.start_button, alignment=Qt.AlignCenter)
 
-        # Aktif görev
         self.active_task_label = QLabel("<b>Aktif Görev:</b> Görev başlığı")
         self.active_task_label.setFont(QFont("Segoe UI", 15))
         self.active_task_label.setStyleSheet("color: #014f68; background-color: #fffbee;")
@@ -113,7 +116,6 @@ class PomodoroApp(QWidget):
         """)
         card_layout.addWidget(divider1)
 
-        # Yapılacaklar
         todo_title = QLabel("Yapılacaklar")
         todo_title.setFont(QFont("Segoe UI", 16, QFont.Bold))
         todo_title.setStyleSheet("color: #014f68; background-color: #fffbee;")
@@ -143,11 +145,10 @@ class PomodoroApp(QWidget):
         self.task_container.setStyleSheet("background-color: #fffbee; border: none;")
         self.task_layout = QVBoxLayout(self.task_container)
         self.task_layout.setAlignment(Qt.AlignTop)
-        self.task_layout.setSpacing(16)
+        self.task_layout.setSpacing(12)
         scroll.setWidget(self.task_container)
         card_layout.addWidget(scroll)
 
-        # Ekle butonu
         ekle_row = QHBoxLayout()
         plus = QLabel("+")
         plus.setFont(QFont("Segoe UI", 17, QFont.Bold))
@@ -172,16 +173,16 @@ class PomodoroApp(QWidget):
         ekle_widget.setLayout(ekle_row)
         self.task_layout.addWidget(ekle_widget)
 
-        # Alt çizgi (görev listesinden sonra)
-        divider2 = QFrame()
-        divider2.setFrameShape(QFrame.HLine)
-        divider2.setFixedHeight(1)
-        divider2.setStyleSheet("""
+        bottom_divider = QFrame()
+        bottom_divider.setFrameShape(QFrame.HLine)
+        bottom_divider.setFixedHeight(1)
+        bottom_divider.setStyleSheet("""
             background-color: #efece3;
             border: none;
-            margin-top: 10px;
+            margin-top: 20px;
+            margin-bottom: 10px;
         """)
-        card_layout.addWidget(divider2)
+        card_layout.addWidget(bottom_divider)
 
         main_layout.addWidget(card)
 
@@ -204,6 +205,7 @@ class PomodoroApp(QWidget):
             self.timer.stop()
             self.timer_running = False
             self.start_button.setText("Başlat")
+            self.sound.play()
             self.switch_mode()
 
     def switch_mode(self):
@@ -220,6 +222,26 @@ class PomodoroApp(QWidget):
         }[self.mode]
 
         self.time_label.setText(self.format_time(self.current_time))
+
+        self.active_tab = {
+            "work": "Pomodoro",
+            "short_break": "Kısa Mola",
+            "long_break": "Uzun Mola"
+        }[self.mode]
+        self.update_tab_styles()
+
+        self.show_popup()
+
+    def show_popup(self):
+        messages = {
+            "Pomodoro": "Odaklanma zamanı!",
+            "Kısa Mola": "Kısa mola zamanı!",
+            "Uzun Mola": "Uzun mola zamanı!"
+        }
+
+        popup = CustomPopup(self.active_tab, messages[self.active_tab], self)
+        popup.move(self.geometry().center() - popup.rect().center())
+        popup.show()
 
     def add_task(self):
         text, ok = QInputDialog.getText(self, "Yeni Görev", "Görev:")
@@ -267,6 +289,51 @@ class PomodoroApp(QWidget):
                     padding-bottom: 4px;
                 }}
             """)
+
+
+class CustomPopup(QWidget):
+    def __init__(self, title, message, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
+        self.setStyleSheet("background-color: #fff1d5; border: 2px solid #eb5539; border-radius: 8px;")
+        self.setFixedSize(320, 220)
+
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setAlignment(Qt.AlignCenter)
+
+        card = QFrame()
+        card.setStyleSheet("""
+            QFrame {
+                background-color: #fffbee;
+                border: 2px solid #f5ce95;
+                border-radius: 20px;
+            }
+        """)
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(20, 20, 20, 20)
+        card_layout.setSpacing(16)
+
+        title_label = QLabel(title)
+        title_label.setFont(QFont("Segoe UI", 18, QFont.Bold))
+        title_label.setStyleSheet("color: #eb5539; background: none; border: none;")
+        title_label.setAlignment(Qt.AlignCenter)
+        card_layout.addWidget(title_label)
+
+        message_label = QLabel(message)
+        message_label.setFont(QFont("Segoe UI", 14))
+        message_label.setStyleSheet("color: #014f68; background: none; border: none;")
+        message_label.setWordWrap(True)
+        message_label.setAlignment(Qt.AlignCenter)
+        card_layout.addWidget(message_label)
+
+        ok_button = OvalButton("Tamam")
+        ok_button.setFixedSize(150, 42)
+        ok_button.clicked.connect(self.close)
+        card_layout.addWidget(ok_button, alignment=Qt.AlignCenter)
+
+        outer_layout.addWidget(card)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
